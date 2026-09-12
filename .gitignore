@@ -1,0 +1,13 @@
+# Visual Studio
+.vs/
+bin/
+obj/
+*.user
+*.suo
+
+# SQLite база
+*.db
+
+# Node
+node_modules/
+dist/

@@ -1,0 +1,6 @@
+@HomewordApi_HostAddress = http://localhost:5145
+
+GET {{HomewordApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
