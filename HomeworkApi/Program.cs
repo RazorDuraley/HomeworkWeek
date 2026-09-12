@@ -14,9 +14,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("https://твой-фронтенд.onrender.com") // пока оставь пустым
-      .AllowAnyHeader()
-      .AllowAnyMethod();
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
@@ -32,7 +32,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAll");
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // отключено для Docker
 app.UseAuthorization();
 app.MapControllers();
 
