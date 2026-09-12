@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from './api';
 import Calendar from './Calendar';
 import Sidebar from './Sidebar';
 
@@ -8,7 +8,7 @@ function App() {
     const [homeworks, setHomeworks] = useState([]);
 
     const loadHomeworks = () => {
-        axios.get('/api/homework')
+        api.get('/api/homework')
             .then(res => setHomeworks(Array.isArray(res.data) ? res.data : []))
             .catch(err => console.error('Ошибка загрузки:', err));
     };

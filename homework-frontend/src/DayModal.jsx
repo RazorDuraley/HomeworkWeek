@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from './api';
 
 const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
     const [subjects, setSubjects] = useState([]);
@@ -8,7 +8,7 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
     const [comment, setComment] = useState('');
 
     useEffect(() => {
-        axios.get('/api/subjects')
+        api.get('/api/subjects')
             .then(res => setSubjects(res.data))
             .catch(err => console.error(err));
     }, []);
@@ -19,7 +19,7 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
             return;
         }
 
-        axios.post('/api/homework', {
+        api.post('/api/homework', {
             subjectId: parseInt(subjectId),
             task,
             dueDate: day.toISOString(),
@@ -35,13 +35,13 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
     };
 
     const toggleDone = (id) => {
-        axios.put(`/api/homework/${id}/done`)
+        api.put(`/api/homework/${id}/done`)
             .then(() => onUpdate())
             .catch(err => console.error(err));
     };
 
     const deleteHomework = (id) => {
-        axios.delete(`/api/homework/${id}`)
+        api.delete(`/api/homework/${id}`)
             .then(() => onUpdate())
             .catch(err => console.error(err));
     };

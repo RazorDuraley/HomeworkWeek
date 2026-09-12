@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from './api';
 
 const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks }) => {
     const [subjects, setSubjects] = useState([]);
     const [newSubject, setNewSubject] = useState('');
 
     useEffect(() => {
-        axios.get('/api/subjects')
+        api.get('/api/subjects')
             .then(res => setSubjects(res.data))
             .catch(err => console.error(err));
     }, []);
@@ -14,13 +14,15 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks }) => {
     const addSubject = () => {
         if (!newSubject.trim()) return;
 
-        axios.post('/api/subjects', { name: newSubject })
+        api.post('/api/subjects', { name: newSubject })
             .then(res => {
                 setSubjects([...subjects, res.data]);
                 setNewSubject('');
             })
             .catch(err => console.error(err));
     };
+
+
 
     // Получить статистику по предмету
     const getSubjectStats = (subjectId) => {
