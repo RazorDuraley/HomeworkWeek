@@ -1,12 +1,10 @@
-# Этап 1: Сборка
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY *.csproj .
+COPY HomeworkApi/HomeworkApi/*.csproj .
 RUN dotnet restore
-COPY . .
+COPY HomeworkApi/HomeworkApi/. .
 RUN dotnet publish -c Release -o /app/publish
 
-# Этап 2: Запуск
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/publish .
