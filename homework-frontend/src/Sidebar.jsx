@@ -72,8 +72,38 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
     };
 
     const getSubjectStats = (subjectId) => {
-        // ... оставь свою текущую логику без изменений
-    };
+    const active = homeworks.filter(h => h.subjectId === subjectId && !h.isDone);
+
+    if (active.length === 0) {
+        return { count: 0, daysLeft: null, dayOfWeek: null };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const future = active.filter(h => {
+        const due = new Date(h.dueDate);
+        due.setHours(0, 0, 0, 0);
+        return due >= today;
+    });
+
+    const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+
+    if (future.length > 0) {
+        const nearest = future.reduce((min, h) =>
+            new Date(h.dueDate) < new Date(min.dueDate) ? h : min
+        );
+        const due = new Date(nearest.dueDate);
+        due.setHours(0, 0, 0, 0);
+
+        const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
+        const dayOfWeek = days[due.getDay()];
+
+        return { count: active.length, daysLeft: diffDays, dayOfWeek };
+    }
+
+    return { count: active.length, daysLeft: -1, dayOfWeek: null, isOverdue: true };
+};
 
     return (
         <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
