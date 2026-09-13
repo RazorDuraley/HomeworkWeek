@@ -6,7 +6,7 @@ using HomeworkApi.Models;
 namespace HomeworkApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/homework")]
 public class HomeworkController : ControllerBase
 {
     private readonly AppDbContext _context;
