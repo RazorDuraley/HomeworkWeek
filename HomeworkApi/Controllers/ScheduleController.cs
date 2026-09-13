@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using HomeworkApi.Constants;
 using HomeworkApi.Data;
 using HomeworkApi.Models;
+using HomeworkApi.DTO;
 
 namespace HomeworkApi.Controllers;
 

@@ -1,4 +1,4 @@
-﻿namespace HomeworkApi.Models;
+﻿namespace HomeworkApi.DTO;
 
 public class ScheduleEntryDto
 {
