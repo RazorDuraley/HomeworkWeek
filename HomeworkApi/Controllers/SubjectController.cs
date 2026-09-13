@@ -7,31 +7,91 @@ namespace HomeworkApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SubjectsController : ControllerBase
+public class SubjectController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly AppDbContext _db;
 
-    public SubjectsController(AppDbContext context)
+    public SubjectController(AppDbContext db)
     {
-        _context = context;
+        _db = db;
     }
 
+    // GET /api/subjects
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<ActionResult<IEnumerable<Subject>>> GetAll()
     {
-        var subjects = await _context.Subjects.ToListAsync();
-        return Ok(subjects);
+        return await _db.Subjects.AsNoTracking().ToListAsync();
     }
 
+    // GET /api/subjects/{id}
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Subject>> GetById(int id)
+    {
+        var subject = await _db.Subjects.FindAsync(id);
+        if (subject == null) return NotFound();
+        return subject;
+    }
+
+    // POST /api/subjects
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] Subject subject)
+    public async Task<ActionResult<Subject>> Create([FromBody] SubjectDto dto)
     {
-        if (string.IsNullOrWhiteSpace(subject.Name))
-            return BadRequest(new { message = "Название предмета обязательно" });
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return BadRequest("Name is required");
 
-        _context.Subjects.Add(subject);
-        await _context.SaveChangesAsync();
+        var subject = new Subject
+        {
+            Name = dto.Name.Trim(),
+            Teacher = string.IsNullOrWhiteSpace(dto.Teacher) ? null : dto.Teacher.Trim()
+        };
 
-        return Ok(subject);
+        _db.Subjects.Add(subject);
+        await _db.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetById), new { id = subject.Id }, subject);
     }
+
+    // PUT /api/subjects/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] SubjectDto dto)
+    {
+        var subject = await _db.Subjects.FindAsync(id);
+        if (subject == null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return BadRequest("Name is required");
+
+        subject.Name = dto.Name.Trim();
+        subject.Teacher = string.IsNullOrWhiteSpace(dto.Teacher) ? null : dto.Teacher.Trim();
+
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // DELETE /api/subjects/{id}
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var subject = await _db.Subjects
+            .Include(s => s.Homeworks)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (subject == null) return NotFound();
+
+        // Если у предмета есть домашки — либо удаляем каскадно, либо запрещаем.
+        // Сейчас: запрещаем удаление, если есть связанные домашки.
+        if (subject.Homeworks.Any())
+            return Conflict("Нельзя удалить предмет: к нему привязаны задания");
+
+        _db.Subjects.Remove(subject);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+}
+
+// DTO для создания/обновления
+public class SubjectDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Teacher { get; set; }
 }
