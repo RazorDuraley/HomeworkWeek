@@ -1,0 +1,255 @@
+/* ===== Layout ===== */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.content {
+  flex: 1;
+  padding: 20px;
+  min-width: 0; /* важно, чтобы flex-ребёнок не вылезал */
+}
+
+.desktop-title {
+  margin-top: 0;
+}
+
+.topbar {
+  display: none;
+}
+
+.loading {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text);
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 12px;
+  background: var(--bg);
+  min-height: 100%;
+  overflow-y: auto;
+}
+
+.sidebar-title {
+  margin: 0 0 12px;
+}
+
+.sidebar-subject {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-bottom: 3px;
+}
+
+.sidebar-subject.active {
+  background: #e3f2fd;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidebar-subject.active {
+    background: rgba(33, 150, 243, 0.25);
+  }
+}
+
+.sidebar-badge {
+  background: #ff9800;
+  color: white;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+}
+
+.sidebar-stats {
+  font-size: 11px;
+  margin-top: 3px;
+  color: #666;
+}
+
+.sidebar-stats.urgent {
+  color: #d32f2f;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 768px) {
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .burger {
+    font-size: 22px;
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    color: var(--text-h);
+  }
+
+  .topbar-title {
+    font-weight: 600;
+    color: var(--text-h);
+  }
+
+  .desktop-title {
+    display: none;
+  }
+
+  .content {
+    padding: 12px;
+  }
+
+  /* Sidebar превращается в выезжающую панель */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 80%;
+    max-width: 320px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 150;
+  }
+}
+/* ===== Calendar ===== */
+.calendar {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-header h2 {
+  margin: 0;
+  text-align: center;
+  flex: 1;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 20px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.calendar-day {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  min-height: 60px;
+  cursor: pointer;
+  background: var(--bg);
+  position: relative;
+}
+
+.calendar-day.empty {
+  cursor: default;
+  border-color: transparent;
+  background: transparent;
+}
+
+.calendar-day.today {
+  background: #e3f2fd;
+}
+
+@media (prefers-color-scheme: dark) {
+  .calendar-day.today {
+    background: rgba(33, 150, 243, 0.25);
+  }
+}
+
+.calendar-day-number {
+  font-weight: bold;
+}
+
+.calendar-day-badge {
+  font-size: 10px;
+  background: #ff9800;
+  color: white;
+  border-radius: 10px;
+  padding: 1px 5px;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+/* На телефоне — компактнее */
+@media (max-width: 768px) {
+  .calendar {
+    padding: 8px 0;
+    max-width: 100%;
+  }
+
+  .calendar-grid {
+    gap: 3px;
+    margin-top: 12px;
+  }
+
+  .calendar-weekday {
+    font-size: 11px;
+  }
+
+  .calendar-day {
+    padding: 6px 4px;
+    min-height: 48px;
+    border-radius: 4px;
+  }
+
+  .calendar-day-number {
+    font-size: 13px;
+  }
+
+  .calendar-day-badge {
+    font-size: 9px;
+    padding: 0 4px;
+  }
+}
