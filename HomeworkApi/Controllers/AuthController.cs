@@ -47,17 +47,24 @@ public class AuthController : ControllerBase
         return Ok(new { token });
     }
 
-    private string GenerateJwt(AppUser user)
+    private async Task<string> GenerateJwt(AppUser user)  // ← добавь async
     {
         var jwtKey = _config["JWT_KEY"] ?? "dev_key_change_me_1234567890_1234567890";
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id),
+        new Claim(ClaimTypes.Email, user.Email!)
+    };
+
+        // 👇 Добавляем роли
+        var roles = await _userManager.GetRolesAsync(user);
+        foreach (var role in roles)
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Email, user.Email!)
-        };
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var token = new JwtSecurityToken(
             claims: claims,
