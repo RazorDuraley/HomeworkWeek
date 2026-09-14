@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using HomeworkApi.Data;
 using HomeworkApi.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HomeworkApi.Controllers;
 
@@ -34,6 +35,7 @@ public class SubjectController : ControllerBase
 
     // POST /api/subjects
     [HttpPost]
+    [Authorize(Roles = "Admin,Moderator")]
     public async Task<ActionResult<Subject>> Create([FromBody] SubjectDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Name))
@@ -53,6 +55,7 @@ public class SubjectController : ControllerBase
 
     // PUT /api/subjects/{id}
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,Moderator")]
     public async Task<IActionResult> Update(int id, [FromBody] SubjectDto dto)
     {
         var subject = await _db.Subjects.FindAsync(id);
@@ -70,6 +73,7 @@ public class SubjectController : ControllerBase
 
     // DELETE /api/subjects/{id}
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,Moderator")]
     public async Task<IActionResult> Delete(int id)
     {
         var subject = await _db.Subjects

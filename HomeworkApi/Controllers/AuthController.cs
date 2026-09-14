@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using HomeworkApi.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using HomeworkApi.Models;
 
 namespace HomeworkApi.Controllers;
 
@@ -65,5 +66,25 @@ public class AuthController : ControllerBase
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> Me()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return Unauthorized();
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return Ok(new
+        {
+            id = user.Id,
+            email = user.Email,
+            displayName = user.DisplayName,
+            roles = roles
+        });
     }
 }
