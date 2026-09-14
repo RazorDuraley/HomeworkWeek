@@ -1,5 +1,11 @@
+п»їusing HomeworkApi.Data;
+using HomeworkApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using HomeworkApi.Data;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -10,7 +16,7 @@ builder.Services.AddSwaggerGen();
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
     ?? "Host=localhost;Database=homework;Username=postgres;Password=postgres";
 
-// Npgsql не понимает формат "postgresql://..." — конвертируем в ADO.NET-формат
+// Npgsql РЅРµ РїРѕРЅРёРјР°РµС‚ С„РѕСЂРјР°С‚ "postgresql://..." вЂ” РєРѕРЅРІРµСЂС‚РёСЂСѓРµРј РІ ADO.NET-С„РѕСЂРјР°С‚
 if (connectionString.StartsWith("postgresql://") || connectionString.StartsWith("postgres://"))
 {
     var uri = new Uri(connectionString);
@@ -37,7 +43,37 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Identity
+builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
+{
+    options.Password.RequireNonAlphanumeric = false; // РґР»СЏ РїСЂРѕСЃС‚РѕС‚С‹
+})
+.AddEntityFrameworkStores<AppDbContext>()
+.AddDefaultTokenProviders();
+
+// JWT
+var jwtKey = builder.Configuration["JWT_KEY"] ?? "dev_key_change_me_1234567890_1234567890";
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+    };
+});
+
 var app = builder.Build();
+
+app.UseAuthentication(); // в†ђ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РїРµСЂРµРґ UseAuthorization
+app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {
@@ -48,12 +84,12 @@ using (var scope = app.Services.CreateScope())
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Urls.Add($"http://+:{port}");
 
-// Swagger доступен и в Production, чтобы можно было тестировать с телефона
+// Swagger РґРѕСЃС‚СѓРїРµРЅ Рё РІ Production, С‡С‚РѕР±С‹ РјРѕР¶РЅРѕ Р±С‹Р»Рѕ С‚РµСЃС‚РёСЂРѕРІР°С‚СЊ СЃ С‚РµР»РµС„РѕРЅР°
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
-// app.UseHttpsRedirection(); // отключено для Docker
+// app.UseHttpsRedirection(); // РѕС‚РєР»СЋС‡РµРЅРѕ РґР»СЏ Docker
 app.UseAuthorization();
 app.MapControllers();
 
