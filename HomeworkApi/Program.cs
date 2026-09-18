@@ -46,18 +46,27 @@ var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
 
 
 
-// Npgsql не понимает формат "postgresql://..." — конвертируем в ADO.NET-формат
 if (connectionString.StartsWith("postgresql://") || connectionString.StartsWith("postgres://"))
 {
     var uri = new Uri(connectionString);
     var userInfo = uri.UserInfo.Split(':', 2);
+
+    var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+    var sslMode = queryParams["SslMode"] ?? queryParams["SSL Mode"] ?? "Require";
+
     connectionString =
         $"Host={uri.Host};" +
         $"Port={uri.Port};" +
         $"Database={uri.AbsolutePath.TrimStart('/')};" +
         $"Username={userInfo[0]};" +
         $"Password={userInfo[1]};" +
-        $"SSL Mode=Require;Trust Server Certificate=true;";
+        $"SSL Mode={sslMode};";
+
+    if (sslMode == "Require")
+    {
+        connectionString += "Trust Server Certificate=true;";
+    }
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -126,3 +135,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+//Тестовый комментарий для проверки GitHub Actions
