@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from './api';
 import SubjectModal from './SubjectModal';
+import { useAuth } from './AuthContext';
 
 const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
+    const { canManageSubjects } = useAuth();
     const [subjects, setSubjects] = useState([]);
     const [newSubject, setNewSubject] = useState('');
     const [newTeacher, setNewTeacher] = useState('');
-    const [editing, setEditing] = useState(null); // { id, name, teacher } | null
+    const [editing, setEditing] = useState(null);
 
     const loadSubjects = () => {
         api.get('/api/subjects')
@@ -42,7 +44,6 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
         api.delete(`/api/subjects/${id}`)
             .then(() => {
                 setSubjects(subjects.filter(s => s.id !== id));
-                // Если удалили выбранный — сбрасываем выбор
                 if (selectedSubjectId === id) {
                     onSelectSubject(null);
                 }
@@ -72,60 +73,62 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
     };
 
     const getSubjectStats = (subjectId) => {
-    const active = homeworks.filter(h => h.subjectId === subjectId && !h.isDone);
+        const active = homeworks.filter(h => h.subjectId === subjectId && !h.isDone);
 
-    if (active.length === 0) {
-        return { count: 0, daysLeft: null, dayOfWeek: null };
-    }
+        if (active.length === 0) {
+            return { count: 0, daysLeft: null, dayOfWeek: null };
+        }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-    const future = active.filter(h => {
-        const due = new Date(h.dueDate);
-        due.setHours(0, 0, 0, 0);
-        return due >= today;
-    });
+        const future = active.filter(h => {
+            const due = new Date(h.dueDate);
+            due.setHours(0, 0, 0, 0);
+            return due >= today;
+        });
 
-    const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+        const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
-    if (future.length > 0) {
-        const nearest = future.reduce((min, h) =>
-            new Date(h.dueDate) < new Date(min.dueDate) ? h : min
-        );
-        const due = new Date(nearest.dueDate);
-        due.setHours(0, 0, 0, 0);
+        if (future.length > 0) {
+            const nearest = future.reduce((min, h) =>
+                new Date(h.dueDate) < new Date(min.dueDate) ? h : min
+            );
+            const due = new Date(nearest.dueDate);
+            due.setHours(0, 0, 0, 0);
 
-        const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
-        const dayOfWeek = days[due.getDay()];
+            const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
+            const dayOfWeek = days[due.getDay()];
 
-        return { count: active.length, daysLeft: diffDays, dayOfWeek };
-    }
+            return { count: active.length, daysLeft: diffDays, dayOfWeek };
+        }
 
-    return { count: active.length, daysLeft: -1, dayOfWeek: null, isOverdue: true };
-};
+        return { count: active.length, daysLeft: -1, dayOfWeek: null, isOverdue: true };
+    };
 
     return (
         <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
             <h4 className="sidebar-title">Предметы</h4>
 
-            <div style={{ marginBottom: '15px' }}>
-                <input
-                    placeholder="Название предмета"
-                    value={newSubject}
-                    onChange={(e) => setNewSubject(e.target.value)}
-                    style={{ width: '100%', padding: '8px', marginBottom: '5px' }}
-                />
-                <input
-                    placeholder="Преподаватель (необязательно)"
-                    value={newTeacher}
-                    onChange={(e) => setNewTeacher(e.target.value)}
-                    style={{ width: '100%', padding: '8px', marginBottom: '5px' }}
-                />
-                <button onClick={addSubject} style={{ width: '100%', padding: '8px' }}>
-                    Добавить
-                </button>
-            </div>
+            {canManageSubjects && (
+                <div style={{ marginBottom: '15px' }}>
+                    <input
+                        placeholder="Название предмета"
+                        value={newSubject}
+                        onChange={(e) => setNewSubject(e.target.value)}
+                        style={{ width: '100%', padding: '8px', marginBottom: '5px' }}
+                    />
+                    <input
+                        placeholder="Преподаватель (необязательно)"
+                        value={newTeacher}
+                        onChange={(e) => setNewTeacher(e.target.value)}
+                        style={{ width: '100%', padding: '8px', marginBottom: '5px' }}
+                    />
+                    <button onClick={addSubject} style={{ width: '100%', padding: '8px' }}>
+                        Добавить
+                    </button>
+                </div>
+            )}
 
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 <li
@@ -162,28 +165,30 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
                                     )}
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
-                                    <button
-                                        className="icon-btn"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditing({ id: s.id, name: s.name, teacher: s.teacher || '' });
-                                        }}
-                                        title="Редактировать"
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        className="icon-btn"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            deleteSubject(s.id, s.name);
-                                        }}
-                                        title="Удалить"
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
+                                {canManageSubjects && (
+                                    <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
+                                        <button
+                                            className="icon-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditing({ id: s.id, name: s.name, teacher: s.teacher || '' });
+                                            }}
+                                            title="Редактировать"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            className="icon-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                deleteSubject(s.id, s.name);
+                                            }}
+                                            title="Удалить"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             {stats.daysLeft !== null && (
