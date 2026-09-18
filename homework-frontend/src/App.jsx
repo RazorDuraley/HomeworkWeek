@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import api from './api';
 import Calendar from './Calendar';
 import Sidebar from './Sidebar';
+import LoginPage from './LoginPage';
+import { useAuth } from './AuthContext';
 
 function App() {
+    const { user, loading: authLoading, logout } = useAuth();
     const [selectedSubjectId, setSelectedSubjectId] = useState(null);
     const [homeworks, setHomeworks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,17 +21,26 @@ function App() {
     };
 
     useEffect(() => {
-        loadHomeworks();
-    }, []);
+        if (user) loadHomeworks();
+    }, [user]);
+
+    // Пока проверяется токен — показываем заглушку
+    if (authLoading) {
+        return <div className="loading">Загрузка...</div>;
+    }
+
+    // Не залогинен — экран логина
+    if (!user) {
+        return <LoginPage />;
+    }
 
     const handleSelectSubject = (id) => {
         setSelectedSubjectId(id);
-        setSidebarOpen(false); // на телефоне закрываем меню после выбора
+        setSidebarOpen(false);
     };
 
     return (
         <div className="app">
-            {/* Верхняя панель на мобилке */}
             <header className="topbar">
                 <button
                     className="burger"
@@ -37,10 +49,17 @@ function App() {
                 >
                     ☰
                 </button>
-                <span className="topbar-title">Домашка ИВ-623</span>
+                <span className="topbar-title">📚 Домашка</span>
+                <div className="topbar-user">
+                    <span className="topbar-username">
+                        {user.displayName || user.email}
+                    </span>
+                    <button className="logout-btn" onClick={logout}>
+                        Выйти
+                    </button>
+                </div>
             </header>
 
-            {/* Оверлей, чтобы закрыть меню тапом по фону */}
             {sidebarOpen && (
                 <div
                     className="sidebar-overlay"
@@ -56,7 +75,7 @@ function App() {
                     isOpen={sidebarOpen}
                 />
                 <main className="content">
-                    <h1 className="desktop-title">Домашка ИВ-623</h1>
+                    <h1 className="desktop-title">📚 Домашка</h1>
                     {loading ? (
                         <div className="loading">Загрузка...</div>
                     ) : (
