@@ -22,7 +22,15 @@
 }
 
 .topbar {
-  display: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .loading {
@@ -89,27 +97,13 @@
 }
 
 /* ===== Mobile ===== */
-@media (max-width: 768px) {
-  .topbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
+@media (min-width: 769px) {
   .burger {
-    font-size: 22px;
-    background: transparent;
-    border: none;
-    padding: 4px 8px;
-    color: var(--text-h);
+    display: none;
   }
+}
 
+@media (max-width: 768px) {
   .topbar-title {
     font-weight: 600;
     color: var(--text-h);
@@ -123,7 +117,6 @@
     padding: 12px;
   }
 
-  /* Sidebar превращается в выезжающую панель */
   .sidebar {
     position: fixed;
     top: 0;
