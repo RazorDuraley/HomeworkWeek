@@ -43,11 +43,11 @@ public class AuthController : ControllerBase
         var passwordOk = await _userManager.CheckPasswordAsync(user, dto.Password);
         if (!passwordOk) return Unauthorized("Неверный email или пароль");
 
-        var token = GenerateJwt(user);
+        var token = await GenerateJwt(user);  
         return Ok(new { token });
     }
 
-    private async Task<string> GenerateJwt(AppUser user)  // ← добавь async
+    private async Task<string> GenerateJwt(AppUser user)  
     {
         var jwtKey = _config["JWT_KEY"] ?? "dev_key_change_me_1234567890_1234567890";
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
