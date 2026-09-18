@@ -14,4 +14,7 @@ public class Homework
 
     [JsonIgnore]
     public Subject? Subject { get; set; }
+
+    public string? CreatedByUserId { get; set; }
+    public bool IsPersonal { get; set; }
 }
