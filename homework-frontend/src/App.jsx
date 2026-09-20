@@ -69,11 +69,12 @@ function App() {
 
             <div className="layout">
                 <Sidebar
-                    selectedSubjectId={selectedSubjectId}
-                    onSelectSubject={handleSelectSubject}
-                    homeworks={homeworks}
-                    isOpen={sidebarOpen}
-                />
+    selectedSubjectId={selectedSubjectId}
+    onSelectSubject={handleSelectSubject}
+    homeworks={homeworks}
+    isOpen={sidebarOpen}
+    onUpdate={loadHomeworks}   
+/>
                 <main className="content">
                     {loading ? (
                         <div className="loading">Загрузка...</div>

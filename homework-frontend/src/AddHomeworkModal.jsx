@@ -22,8 +22,8 @@ const AddHomeworkModal = ({ subject, presetDueDate, onClose, onUpdate }) => {
         };
 
         if (presetDueDate) {
-            payload.dueDate = new Date(presetDueDate + 'T00:00:00Z').toISOString();
-        }
+            payload.dueDate = presetDueDate;  
+              }
 
         api.post('/api/homework', payload)
             .then(() => {
@@ -55,7 +55,8 @@ const AddHomeworkModal = ({ subject, presetDueDate, onClose, onUpdate }) => {
                 <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '12px' }}>
                     Предмет: <strong>{subject.name}</strong>
                     {presetDueDate && (
-                        <> · Дата: {new Date(presetDueDate).toLocaleDateString('ru-RU')}</>
+                        <> · Дата: {new Date(presetDueDate + 'T00:00:00').toLocaleDateString('ru-RU')}
+                        </>
                     )}
                 </div>
 

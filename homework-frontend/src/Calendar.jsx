@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import DayModal from './DayModal';
+import { toLocalDateString } from './utils/date';
 
 const Calendar = ({ selectedSubjectId, homeworks, onUpdate }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -28,8 +29,8 @@ const Calendar = ({ selectedSubjectId, homeworks, onUpdate }) => {
 
     const getHomeworksForDay = (day) => {
         if (!day) return [];
-        const dateStr = day.toISOString().split('T')[0];
-        return filteredHomeworks.filter(h => h.dueDate.split('T')[0] === dateStr);
+        const dateStr = toLocalDateString(day);
+        return filteredHomeworks.filter(h => h.dueDate === dateStr);
     };
 
     const changeMonth = (delta) => {

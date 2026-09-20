@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import api from './api';
 import SubjectModal from './SubjectModal';
+import SubjectInfoModal from './SubjectInfoModal';
 import { useAuth } from './AuthContext';
+import { parseLocalDate } from './utils/date';
 
-const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
+const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen, onUpdate }) => {
     const { canManageSubjects } = useAuth();
     const [subjects, setSubjects] = useState([]);
     const [newSubject, setNewSubject] = useState('');
     const [newTeacher, setNewTeacher] = useState('');
     const [editing, setEditing] = useState(null);
+    const [infoSubject, setInfoSubject] = useState(null);  // 👈 для SubjectInfoModal
 
     const loadSubjects = () => {
         api.get('/api/subjects')
@@ -22,36 +25,25 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
 
     const addSubject = () => {
         if (!newSubject.trim()) return;
-
-        api.post('/api/subjects', {
-            name: newSubject,
-            teacher: newTeacher,
-        })
+        api.post('/api/subjects', { name: newSubject, teacher: newTeacher })
             .then(res => {
                 setSubjects([...subjects, res.data]);
                 setNewSubject('');
                 setNewTeacher('');
             })
-            .catch(err => {
-                console.error(err);
-                alert('Не удалось добавить предмет');
-            });
+            .catch(err => { console.error(err); alert('Не удалось добавить предмет'); });
     };
 
     const deleteSubject = (id, name) => {
         if (!confirm(`Удалить предмет «${name}»?`)) return;
-
         api.delete(`/api/subjects/${id}`)
             .then(() => {
                 setSubjects(subjects.filter(s => s.id !== id));
-                if (selectedSubjectId === id) {
-                    onSelectSubject(null);
-                }
+                if (selectedSubjectId === id) onSelectSubject(null);
             })
             .catch(err => {
-                console.error(err);
                 if (err.response?.status === 409) {
-                    alert('Нельзя удалить предмет, к которому привязаны задания. Сначала удали задания.');
+                    alert('Нельзя удалить предмет, к которому привязаны задания.');
                 } else {
                     alert('Не удалось удалить предмет');
                 }
@@ -61,45 +53,30 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
     const saveEdit = (id, name, teacher) => {
         api.put(`/api/subjects/${id}`, { name, teacher })
             .then(() => {
-                setSubjects(subjects.map(s =>
-                    s.id === id ? { ...s, name, teacher } : s
-                ));
+                setSubjects(subjects.map(s => s.id === id ? { ...s, name, teacher } : s));
                 setEditing(null);
             })
-            .catch(err => {
-                console.error(err);
-                alert('Не удалось сохранить изменения');
-            });
+            .catch(err => { console.error(err); alert('Не удалось сохранить'); });
     };
 
     const getSubjectStats = (subjectId) => {
         const active = homeworks.filter(h => h.subjectId === subjectId && !h.isDone);
-
-        if (active.length === 0) {
-            return { count: 0, daysLeft: null, dayOfWeek: null };
-        }
+        if (active.length === 0) return { count: 0, daysLeft: null, dayOfWeek: null };
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-        const future = active.filter(h => {
-            const due = new Date(h.dueDate);
-            due.setHours(0, 0, 0, 0);
-            return due >= today;
-        });
+        const future = active.filter(h => h.dueDate >= todayStr);
 
         const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
         if (future.length > 0) {
-            const nearest = future.reduce((min, h) =>
-                new Date(h.dueDate) < new Date(min.dueDate) ? h : min
-            );
-            const due = new Date(nearest.dueDate);
+            const nearest = future.reduce((min, h) => h.dueDate < min.dueDate ? h : min);
+            const due = parseLocalDate(nearest.dueDate);
             due.setHours(0, 0, 0, 0);
-
             const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
             const dayOfWeek = days[due.getDay()];
-
             return { count: active.length, daysLeft: diffDays, dayOfWeek };
         }
 
@@ -124,9 +101,7 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
                         onChange={(e) => setNewTeacher(e.target.value)}
                         style={{ width: '100%', padding: '8px', marginBottom: '5px' }}
                     />
-                    <button onClick={addSubject} style={{ width: '100%', padding: '8px' }}>
-                        Добавить
-                    </button>
+                    <button onClick={addSubject} style={{ width: '100%', padding: '8px' }}>Добавить</button>
                 </div>
             )}
 
@@ -141,22 +116,17 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
                 {subjects.map(s => {
                     const stats = getSubjectStats(s.id);
                     return (
-                        <li
-                            key={s.id}
-                            className={`sidebar-subject ${selectedSubjectId === s.id ? 'active' : ''}`}
-                        >
-                            <div
-                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
-                                onClick={() => onSelectSubject(s.id)}
-                            >
-                                <div style={{ minWidth: 0, flex: 1 }}>
+                        <li key={s.id} className={`sidebar-subject ${selectedSubjectId === s.id ? 'active' : ''}`}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                <div
+                                    style={{ minWidth: 0, flex: 1, cursor: 'pointer' }}
+                                    onClick={() => setInfoSubject(s.id)}
+                                >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {s.name}
                                         </span>
-                                        {stats.count > 0 && (
-                                            <span className="sidebar-badge">{stats.count}</span>
-                                        )}
+                                        {stats.count > 0 && <span className="sidebar-badge">{stats.count}</span>}
                                     </div>
                                     {s.teacher && (
                                         <div style={{ fontSize: '11px', color: 'var(--text)', marginTop: '2px' }}>
@@ -169,24 +139,14 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
                                     <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
                                         <button
                                             className="icon-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditing({ id: s.id, name: s.name, teacher: s.teacher || '' });
-                                            }}
+                                            onClick={(e) => { e.stopPropagation(); setEditing({ id: s.id, name: s.name, teacher: s.teacher || '' }); }}
                                             title="Редактировать"
-                                        >
-                                            ✏️
-                                        </button>
+                                        >✏️</button>
                                         <button
                                             className="icon-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteSubject(s.id, s.name);
-                                            }}
+                                            onClick={(e) => { e.stopPropagation(); deleteSubject(s.id, s.name); }}
                                             title="Удалить"
-                                        >
-                                            🗑️
-                                        </button>
+                                        >🗑️</button>
                                     </div>
                                 )}
                             </div>
@@ -205,10 +165,15 @@ const Sidebar = ({ onSelectSubject, selectedSubjectId, homeworks, isOpen }) => {
             </ul>
 
             {editing && (
-                <SubjectModal
-                    subject={editing}
-                    onSave={saveEdit}
-                    onClose={() => setEditing(null)}
+                <SubjectModal subject={editing} onSave={saveEdit} onClose={() => setEditing(null)} />
+            )}
+
+            {infoSubject && (
+                <SubjectInfoModal
+                    subjectId={infoSubject}
+                    onClose={() => setInfoSubject(null)}
+                    onShowOnCalendar={(id) => { onSelectSubject(id); setInfoSubject(null); }}
+                    onUpdate={onUpdate}
                 />
             )}
         </aside>
