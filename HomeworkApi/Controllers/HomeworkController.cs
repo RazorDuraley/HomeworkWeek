@@ -23,12 +23,13 @@ public class HomeworkController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<HomeworkResponse>>> GetAll()
     {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var homeworks = await _db.Homeworks
-            .Include(h => h.Subject)
-            .OrderBy(h => h.DueDate)
-            .ToListAsync();
+    .Include(h => h.Subject)
+    .Where(h => !h.IsPersonal || h.CreatedByUserId == userId)
+    .OrderBy(h => h.DueDate)
+    .ToListAsync();
 
-        // Собираем список userId, чтобы получить имена
         var userIds = homeworks
             .Where(h => h.CreatedByUserId != null)
             .Select(h => h.CreatedByUserId!)
@@ -70,7 +71,6 @@ public class HomeworkController : ControllerBase
         DateTime dueDate;
         if (dto.UseSchedule)
         {
-            // вычислим дату по расписанию (следующая пара)
             var next = await GetNextScheduleDate(dto.SubjectId);
             if (next == null)
                 return BadRequest("У предмета нет пар в расписании, укажи дату вручную");
@@ -92,8 +92,9 @@ public class HomeworkController : ControllerBase
             Comment = dto.Comment?.Trim(),
             DueDate = dueDate,
             IsDone = false,
-            CreatedByUserId = userId,
-            IsPersonal = true,   // пока все домашки личные
+
+            CreatedByUserId = dto.IsShared ? null : userId,
+            IsPersonal = !dto.IsShared,
         };
 
         _db.Homeworks.Add(homework);
@@ -158,13 +159,19 @@ public class HomeworkController : ControllerBase
 
         if (entries.Count == 0) return null;
 
-        var today = DateTime.UtcNow.Date;
+        // 👇 Локальное время, не UTC — чтобы «сегодня» совпадало с твоим днём
+        var today = DateTime.Now.Date;
 
-        for (int offset = 0; offset < 28; offset++)
+        // 👇 Начинаем с ЗАВТРА (offset = 1), а не с сегодня.
+        // Причина: если сегодня уже была пара по этому предмету — она не должна
+        // считаться «следующей». Проще всего искать с завтрашнего дня.
+        for (int offset = 1; offset < 28; offset++)
         {
             var checkDate = today.AddDays(offset);
             var weekNumber = HomeworkApi.Constants.SemesterInfo.GetWeekNumber(checkDate);
             var dayOfWeek = (int)checkDate.DayOfWeek;
+
+            // Воскресенье (0) пропускаем — пар нет
             if (dayOfWeek == 0) continue;
 
             var match = entries

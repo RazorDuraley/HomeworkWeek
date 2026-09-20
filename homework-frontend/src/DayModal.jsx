@@ -11,15 +11,14 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
     const [useSchedule, setUseSchedule] = useState(false);
     const [schedule, setSchedule] = useState([]);
     const [scheduleLoading, setScheduleLoading] = useState(false);
-
-    // Загружаем предметы
+    const [isShared, setIsShared] = useState(false);
+    
     useEffect(() => {
         api.get('/api/subjects')
             .then(res => setSubjects(res.data))
             .catch(err => console.error(err));
     }, []);
 
-    // Загружаем расписание на выбранный день
     useEffect(() => {
         if (!day) return;
         setScheduleLoading(true);
@@ -44,11 +43,12 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
         }
 
         const payload = {
-            subjectId: parseInt(subjectId),
-            task,
-            comment,
-            useSchedule,
-        };
+    subjectId: parseInt(subjectId),
+    task,
+    comment,
+    useSchedule,
+    isShared,
+};
 
         if (!useSchedule) {
             payload.dueDate = day.toISOString();
@@ -237,6 +237,14 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
                         />
                         Поставить на следующую пару по предмету
                     </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', marginBottom: '8px', color: 'var(--text)' }}>
+                    <input
+                        type="checkbox"
+                        checked={isShared}
+                        onChange={(e) => setIsShared(e.target.checked)}
+                    />
+                    Общая домашка (видят все)
+                </label>
 
                     <button onClick={addHomework} style={{ padding: '10px 20px' }}>
                         Добавить
