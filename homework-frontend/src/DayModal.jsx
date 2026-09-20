@@ -1,17 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import api from './api';
+import { useAuth } from './AuthContext';
 
 const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
+    const { user } = useAuth();
     const [subjects, setSubjects] = useState([]);
     const [subjectId, setSubjectId] = useState('');
     const [task, setTask] = useState('');
     const [comment, setComment] = useState('');
+    const [useSchedule, setUseSchedule] = useState(false);
+    const [schedule, setSchedule] = useState([]);
+    const [scheduleLoading, setScheduleLoading] = useState(false);
 
+    // Загружаем предметы
     useEffect(() => {
         api.get('/api/subjects')
             .then(res => setSubjects(res.data))
             .catch(err => console.error(err));
     }, []);
+
+    // Загружаем расписание на выбранный день
+    useEffect(() => {
+        if (!day) return;
+        setScheduleLoading(true);
+        const dateStr = day.toISOString().split('T')[0];
+        api.get(`/api/schedule/week?date=${dateStr}`)
+            .then(res => {
+                // фильтруем только пары этого дня недели
+                const dayOfWeek = day.getDay() === 0 ? 7 : day.getDay(); // 1=Пн..7=Вс
+                const entries = (res.data.entries || []).filter(
+                    e => e.dayOfWeek === dayOfWeek
+                );
+                setSchedule(entries);
+            })
+            .catch(err => console.error('Schedule load error:', err))
+            .finally(() => setScheduleLoading(false));
+    }, [day]);
 
     const addHomework = () => {
         if (!subjectId || !task) {
@@ -19,19 +43,29 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
             return;
         }
 
-        api.post('/api/homework', {
+        const payload = {
             subjectId: parseInt(subjectId),
             task,
-            dueDate: day.toISOString(),
             comment,
-        })
+            useSchedule,
+        };
+
+        if (!useSchedule) {
+            payload.dueDate = day.toISOString();
+        }
+
+        api.post('/api/homework', payload)
             .then(() => {
                 setSubjectId('');
                 setTask('');
                 setComment('');
+                setUseSchedule(false);
                 onUpdate();
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err);
+                alert(err.response?.data || 'Не удалось добавить задание');
+            });
     };
 
     const toggleDone = (id) => {
@@ -41,9 +75,23 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
     };
 
     const deleteHomework = (id) => {
+        if (!confirm('Удалить задание?')) return;
         api.delete(`/api/homework/${id}`)
             .then(() => onUpdate())
-            .catch(err => console.error(err));
+            .catch(err => {
+                if (err.response?.status === 403) {
+                    alert('Ты можешь удалять только свои задания');
+                } else {
+                    console.error(err);
+                }
+            });
+    };
+
+    // Определяем цвет домашки
+    const getHomeworkColor = (h) => {
+        if (h.isDone) return '#c8e6c9';                       // выполнено — зелёный
+        if (h.createdByUserId && h.createdByUserId === user?.id) return '#e3f2fd'; // своё — синий
+        return '#fff3e0';                                     // чужое/общее — оранжевый
     };
 
     return (
@@ -57,50 +105,105 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
             zIndex: 1000,
         }}>
             <div style={{
-                background: 'white',
+                background: 'var(--bg)',
+                color: 'var(--text)',
                 padding: '20px',
                 borderRadius: '10px',
-                maxWidth: '500px',
+                maxWidth: '520px',
                 width: '90%',
-                maxHeight: '80vh',
+                maxHeight: '85vh',
                 overflowY: 'auto',
             }}>
-                <button onClick={onClose} style={{ float: 'right' }}>✕</button>
-                <h3>{day.toLocaleDateString('ru-RU')}</h3>
+                <button onClick={onClose} style={{ float: 'right', background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--text)' }}>✕</button>
+                <h3 style={{ marginTop: 0 }}>{day.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
 
-                <div style={{ marginTop: '20px' }}>
-                    <h4>Задания:</h4>
-                    {homeworks.length === 0 ? (
-                        <p>Нет заданий</p>
+                {/* ===== Пары этого дня ===== */}
+                <div style={{ marginTop: '16px' }}>
+                    <h4>🎓 Пары:</h4>
+                    {scheduleLoading ? (
+                        <p style={{ color: 'var(--text)', fontSize: '13px' }}>Загрузка...</p>
+                    ) : schedule.length === 0 ? (
+                        <p style={{ color: 'var(--text)', fontSize: '13px' }}>Нет пар</p>
                     ) : (
-                        homeworks.map(h => (
-                            <div key={h.id} style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '10px',
-                                border: '1px solid #eee',
-                                borderRadius: '5px',
-                                marginBottom: '5px',
-                                background: h.isDone ? '#e8f5e9' : 'white',
-                            }}>
-                                <div>
-                                    <strong>{h.subject?.name}</strong>: {h.task}
-                                    {h.comment && <div style={{ fontSize: '12px', color: '#666' }}>{h.comment}</div>}
+                        schedule
+                            .sort((a, b) => a.pairNumber - b.pairNumber)
+                            .map(e => (
+                                <div key={e.id} style={{
+                                    padding: '8px 10px',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '5px',
+                                    marginBottom: '5px',
+                                    background: 'var(--accent-bg)',
+                                    fontSize: '13px',
+                                }}>
+                                    <div style={{ fontWeight: 600 }}>
+                                        {e.pairNumber}. {e.subjectName}
+                                        <span style={{ color: 'var(--text)', fontWeight: 400, marginLeft: '6px' }}>
+                                            {e.startTime}–{e.endTime}
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text)' }}>
+                                        {e.lessonType}{e.room ? ` · ${e.room}` : ''}
+                                    </div>
+                                    {e.teacher && (
+                                        <div style={{ fontSize: '11px', color: 'var(--text)', marginTop: '2px' }}>
+                                            👤 {e.teacher}
+                                        </div>
+                                    )}
                                 </div>
-                                <div>
-                                    <button onClick={() => toggleDone(h.id)}>
-                                        {h.isDone ? '↺' : '✓'}
-                                    </button>
-                                    <button onClick={() => deleteHomework(h.id)}>🗑️</button>
-                                </div>
-                            </div>
-                        ))
+                            ))
                     )}
                 </div>
 
+                {/* ===== Домашки ===== */}
                 <div style={{ marginTop: '20px' }}>
-                    <h4>Добавить задание:</h4>
+                    <h4>📝 Задания:</h4>
+                    {homeworks.length === 0 ? (
+                        <p style={{ color: 'var(--text)', fontSize: '13px' }}>Нет заданий</p>
+                    ) : (
+                        homeworks.map(h => {
+                            const isMine = h.createdByUserId && h.createdByUserId === user?.id;
+                            return (
+                                <div key={h.id} style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '10px',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '5px',
+                                    marginBottom: '5px',
+                                    background: getHomeworkColor(h),
+                                    color: '#222',
+                                    gap: '8px',
+                                }}>
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                        <div>
+                                            <strong>{h.subject?.name}</strong>: {h.task}
+                                        </div>
+                                        {h.comment && (
+                                            <div style={{ fontSize: '12px', color: '#555' }}>{h.comment}</div>
+                                        )}
+                                        {!isMine && h.createdByName && (
+                                            <div style={{ fontSize: '11px', color: '#777', marginTop: '2px' }}>
+                                                👤 {h.createdByName}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                        <button onClick={() => toggleDone(h.id)} title="Отметить">
+                                            {h.isDone ? '↺' : '✓'}
+                                        </button>
+                                        <button onClick={() => deleteHomework(h.id)} title="Удалить">🗑️</button>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* ===== Добавить ===== */}
+                <div style={{ marginTop: '20px' }}>
+                    <h4>➕ Добавить задание:</h4>
 
                     <select
                         value={subjectId}
@@ -117,14 +220,24 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
                         placeholder="Что задали"
                         value={task}
                         onChange={(e) => setTask(e.target.value)}
-                        style={{ width: '100%', marginBottom: '5px', padding: '8px' }}
+                        style={{ width: '100%', marginBottom: '5px', padding: '8px', boxSizing: 'border-box' }}
                     />
                     <input
                         placeholder="Комментарий (необязательно)"
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
-                        style={{ width: '100%', marginBottom: '5px', padding: '8px' }}
+                        style={{ width: '100%', marginBottom: '5px', padding: '8px', boxSizing: 'border-box' }}
                     />
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', marginBottom: '8px', color: 'var(--text)' }}>
+                        <input
+                            type="checkbox"
+                            checked={useSchedule}
+                            onChange={(e) => setUseSchedule(e.target.checked)}
+                        />
+                        Поставить на следующую пару по предмету
+                    </label>
+
                     <button onClick={addHomework} style={{ padding: '10px 20px' }}>
                         Добавить
                     </button>
