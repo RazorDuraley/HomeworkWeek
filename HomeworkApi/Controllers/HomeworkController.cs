@@ -150,7 +150,6 @@ public class HomeworkController : ControllerBase
         return NoContent();
     }
 
-    // Вспомогательный метод: дата следующей пары по предмету
     private async Task<DateTime?> GetNextScheduleDate(int subjectId)
     {
         var entries = await _db.ScheduleEntries
@@ -159,19 +158,13 @@ public class HomeworkController : ControllerBase
 
         if (entries.Count == 0) return null;
 
-        // 👇 Локальное время, не UTC — чтобы «сегодня» совпадало с твоим днём
-        var today = DateTime.Now.Date;
+        var today = DateTime.SpecifyKind(DateTime.Now.Date, DateTimeKind.Unspecified);
 
-        // 👇 Начинаем с ЗАВТРА (offset = 1), а не с сегодня.
-        // Причина: если сегодня уже была пара по этому предмету — она не должна
-        // считаться «следующей». Проще всего искать с завтрашнего дня.
         for (int offset = 1; offset < 28; offset++)
         {
             var checkDate = today.AddDays(offset);
             var weekNumber = HomeworkApi.Constants.SemesterInfo.GetWeekNumber(checkDate);
             var dayOfWeek = (int)checkDate.DayOfWeek;
-
-            // Воскресенье (0) пропускаем — пар нет
             if (dayOfWeek == 0) continue;
 
             var match = entries
@@ -179,7 +172,10 @@ public class HomeworkController : ControllerBase
                 .OrderBy(e => e.PairNumber)
                 .FirstOrDefault();
 
-            if (match != null) return checkDate;
+            if (match != null)
+            {
+                return DateTime.SpecifyKind(checkDate, DateTimeKind.Utc);
+            }
         }
 
         return null;
