@@ -230,14 +230,6 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
                     />
 
                     <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', marginBottom: '8px', color: 'var(--text)' }}>
-                        <input
-                            type="checkbox"
-                            checked={useSchedule}
-                            onChange={(e) => setUseSchedule(e.target.checked)}
-                        />
-                        Поставить на следующую пару по предмету
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', marginBottom: '8px', color: 'var(--text)' }}>
                     <input
                         type="checkbox"
                         checked={isShared}

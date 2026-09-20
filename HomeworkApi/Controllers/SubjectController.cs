@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using HomeworkApi.Data;
 using HomeworkApi.Models;
 using Microsoft.AspNetCore.Authorization;
+using HomeworkApi.Constants;
+using HomeworkApi.DTO;
 
 namespace HomeworkApi.Controllers;
 
@@ -15,6 +17,59 @@ public class SubjectController : ControllerBase
     public SubjectController(AppDbContext db)
     {
         _db = db;
+    }
+
+    // GET /api/subjects/{id}/info
+    [HttpGet("{id}/info")]
+    public async Task<ActionResult<SubjectInfoResponse>> GetInfo(int id)
+    {
+        var subject = await _db.Subjects.FindAsync(id);
+        if (subject == null) return NotFound();
+
+        var response = new SubjectInfoResponse
+        {
+            Id = subject.Id,
+            Name = subject.Name,
+            Teacher = subject.Teacher,
+        };
+
+        var entries = await _db.ScheduleEntries
+            .Where(e => e.SubjectId == id)
+            .ToListAsync();
+
+        if (entries.Count > 0)
+        {
+            var today = DateTime.SpecifyKind(DateTime.Now.Date, DateTimeKind.Unspecified);
+
+            for (int offset = 1; offset < 28; offset++)
+            {
+                var checkDate = today.AddDays(offset);
+                var weekNumber = SemesterInfo.GetWeekNumber(checkDate);
+                var dayOfWeek = (int)checkDate.DayOfWeek;
+                if (dayOfWeek == 0) continue;
+
+                var match = entries
+                    .Where(e => e.WeekNumber == weekNumber && (int)e.DayOfWeek == dayOfWeek)
+                    .OrderBy(e => e.PairNumber)
+                    .FirstOrDefault();
+
+                if (match != null)
+                {
+                    var times = PairTimes.Get(match.PairNumber);
+                    response.NextPairDate = checkDate.ToString("yyyy-MM-dd");
+                    response.NextPairDayOfWeek = checkDate.ToString("dddd", new System.Globalization.CultureInfo("ru-RU"));
+                    response.NextPairNumber = match.PairNumber;
+                    response.NextPairTime = times != null
+                        ? $"{times.Value.Start:hh\\:mm}–{times.Value.End:hh\\:mm}"
+                        : null;
+                    response.NextPairRoom = match.Room;
+                    response.NextPairTeacher = match.Teacher;
+                    break;
+                }
+            }
+        }
+
+        return response;
     }
 
     // GET /api/subjects
