@@ -75,7 +75,6 @@ function App() {
                     isOpen={sidebarOpen}
                 />
                 <main className="content">
-                    <h1 className="desktop-title">📚 Домашка</h1>
                     {loading ? (
                         <div className="loading">Загрузка...</div>
                     ) : (

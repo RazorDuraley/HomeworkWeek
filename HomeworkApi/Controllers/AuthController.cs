@@ -31,6 +31,9 @@ public class AuthController : ControllerBase
         var user = new AppUser { UserName = dto.Email, Email = dto.Email, DisplayName = dto.DisplayName };
         var result = await _userManager.CreateAsync(user, dto.Password);
         if (!result.Succeeded) return BadRequest(result.Errors);
+
+        await _userManager.AddToRoleAsync(user, "User");
+
         return Ok(new { message = "Registered" });
     }
 

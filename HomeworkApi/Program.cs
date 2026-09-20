@@ -111,7 +111,7 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-app.UseAuthentication(); // ← обязательно перед UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())
