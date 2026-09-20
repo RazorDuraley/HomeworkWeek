@@ -51,8 +51,8 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
 };
 
         if (!useSchedule) {
-            payload.dueDate = day.toISOString();
-        }
+    payload.dueDate = toLocalDateString(day);   
+}
 
         api.post('/api/homework', payload)
             .then(() => {
