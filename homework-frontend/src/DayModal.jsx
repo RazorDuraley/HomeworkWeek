@@ -93,7 +93,13 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
         if (h.createdByUserId && h.createdByUserId === user?.id) return '#e3f2fd'; // своё — синий
         return '#fff3e0';                                     // чужое/общее — оранжевый
     };
+    // Предметы, которые есть в расписании на этот день
+const availableSubjects = (() => {
+    if (schedule.length === 0) return subjects;  // fallback: если пар нет — все предметы
 
+    const ids = new Set(schedule.map(e => e.subjectId));
+    return subjects.filter(s => ids.has(s.id));
+})();
     return (
         <div style={{
             position: 'fixed',
@@ -205,16 +211,18 @@ const DayModal = ({ day, homeworks, onClose, onUpdate }) => {
                 <div style={{ marginTop: '20px' }}>
                     <h4>➕ Добавить задание:</h4>
 
-                    <select
-                        value={subjectId}
-                        onChange={(e) => setSubjectId(e.target.value)}
-                        style={{ width: '100%', marginBottom: '5px', padding: '8px' }}
-                    >
-                        <option value="">Выбери предмет</option>
-                        {subjects.map(s => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                    </select>
+                        <select
+        value={subjectId}
+        onChange={(e) => setSubjectId(e.target.value)}
+        style={{ width: '100%', marginBottom: '5px', padding: '8px' }}
+    >
+        <option value="">Выбери предмет</option>
+        {availableSubjects.map(s => (
+            <option key={s.id} value={s.id}>
+                {s.name}{s.teacher ? ` — ${s.teacher.split(',')[0]}` : ''}
+            </option>
+        ))}
+    </select>
 
                     <input
                         placeholder="Что задали"
