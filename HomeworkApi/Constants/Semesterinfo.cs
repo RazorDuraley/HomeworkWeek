@@ -24,4 +24,5 @@ public static class SemesterInfo
         var diff = ((int)date.DayOfWeek + 6) % 7; // 0 = Пн, 6 = Вс
         return date.Date.AddDays(-diff);
     }
+    public static int GetWeekNumber(DateOnly date) => GetWeekNumber(date.ToDateTime(TimeOnly.MinValue));
 }

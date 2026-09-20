@@ -68,7 +68,7 @@ public class HomeworkController : ControllerBase
         var subject = await _db.Subjects.FindAsync(dto.SubjectId);
         if (subject == null) return BadRequest("Subject not found");
 
-        DateTime dueDate;
+        DateOnly dueDate;
         if (dto.UseSchedule)
         {
             var next = await GetNextScheduleDate(dto.SubjectId);
@@ -150,7 +150,7 @@ public class HomeworkController : ControllerBase
         return NoContent();
     }
 
-    private async Task<DateTime?> GetNextScheduleDate(int subjectId)
+    private async Task<DateOnly?> GetNextScheduleDate(int subjectId)
     {
         var entries = await _db.ScheduleEntries
             .Where(e => e.SubjectId == subjectId)
@@ -158,12 +158,12 @@ public class HomeworkController : ControllerBase
 
         if (entries.Count == 0) return null;
 
-        var today = DateTime.SpecifyKind(DateTime.Now.Date, DateTimeKind.Unspecified);
+        var today = DateOnly.FromDateTime(DateTime.Now);
 
         for (int offset = 1; offset < 28; offset++)
         {
             var checkDate = today.AddDays(offset);
-            var weekNumber = HomeworkApi.Constants.SemesterInfo.GetWeekNumber(checkDate);
+            var weekNumber = HomeworkApi.Constants.SemesterInfo.GetWeekNumber(checkDate.ToDateTime(TimeOnly.MinValue));
             var dayOfWeek = (int)checkDate.DayOfWeek;
             if (dayOfWeek == 0) continue;
 
@@ -172,10 +172,7 @@ public class HomeworkController : ControllerBase
                 .OrderBy(e => e.PairNumber)
                 .FirstOrDefault();
 
-            if (match != null)
-            {
-                return DateTime.SpecifyKind(checkDate, DateTimeKind.Utc);
-            }
+            if (match != null) return checkDate;
         }
 
         return null;

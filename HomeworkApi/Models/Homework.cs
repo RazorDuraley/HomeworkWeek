@@ -6,7 +6,7 @@ public class Homework
 {
     public int Id { get; set; }
     public string Task { get; set; } = string.Empty;
-    public DateTime DueDate { get; set; }
+    public DateOnly DueDate { get; set; }       
     public bool IsDone { get; set; } = false;
     public string? Comment { get; set; }
 
